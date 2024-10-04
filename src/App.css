@@ -1,0 +1,61 @@
+/* Global Styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: #2b2f3a; /* Dark grey/blue background */
+}
+
+.App {
+  text-align: left;
+}
+
+/* Header Styles */
+.App-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: #1f232d; /* Darker header background */
+  color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.App-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+/* Centered navigation tabs */
+.nav-tabs {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  flex-grow: 1;
+}
+
+.nav-tabs .tab-link {
+  text-decoration: none;
+  color: white;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 1rem;
+}
+
+.nav-tabs .tab-link:hover {
+  text-decoration: underline;
+}
+
+/* Search bar on the right */
+.search-bar {
+  position: relative;
+}
+
+.search-bar input {
+  padding: 8px;
+  border-radius: 5px;
+  border: none;
+  width: 250px;
+  background-color: #3a3f4b;
+  color: white;
+}

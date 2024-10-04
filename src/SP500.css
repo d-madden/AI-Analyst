@@ -1,0 +1,47 @@
+/* Container for the S&P500 page */
+.sp500-container {
+    padding: 20px;
+    color: white;
+  }
+  
+  /* Table styling */
+  .sp500-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .sp500-table th, .sp500-table td {
+    padding: 10px;
+    border-bottom: 1px solid #444;
+    text-align: left;
+  }
+  
+  .sp500-table th {
+    background-color: #1f232d;
+    color: white;
+    cursor: pointer;
+  }
+  
+  .sp500-table td {
+    color: white;
+  }
+  
+  .positive {
+    color: #00ff00;
+  }
+  
+  .negative {
+    color: #ff4d4d;
+  }
+  
+  /* Chart container */
+  .chart-container {
+    margin-bottom: 30px;
+  }
+  
+  h2 {
+    text-align: center;
+    color: white;
+  }
+  
