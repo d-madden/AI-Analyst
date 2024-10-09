@@ -1,158 +1,98 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import './SP500.css';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  LineElement,
-  PointElement,
-  CategoryScale,
-  LinearScale,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import { fetchSP500Data } from './apiService'; // Adjust the path if necessary
+import { useNavigate } from 'react-router-dom';
 
 function SP500() {
   const [sp500Data, setSp500Data] = useState([]);
-  const [sortConfig, setSortConfig] = useState({ key: 'marketCap', direction: 'descending' });
-  const [chartData, setChartData] = useState({});
   const [loading, setLoading] = useState(true);
+  const [sortColumn, setSortColumn] = useState('marketcapitalization');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchSP500Data = async () => {
-      const apiKey = process.env.REACT_APP_FINNHUB_API_KEY;
-
-      try {
-        const symbols = [
-          'AAPL', 'MSFT', 'META', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'BRK.B', 'JNJ', 'V'
-        ];
-
-        const stockDataPromises = symbols.map(async (symbol) => {
-          const [quoteResponse, profileResponse] = await Promise.all([
-            axios.get(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`),
-            axios.get(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${apiKey}`)
-          ]);
-
-          const currentPrice = quoteResponse.data.c;
-          const previousClose = quoteResponse.data.pc;
-          const change = previousClose
-            ? ((currentPrice - previousClose) / previousClose) * 100
-            : 'N/A';
-
-          return {
-            ticker: symbol,
-            name: profileResponse.data.name,
-            industry: profileResponse.data.finnhubIndustry || 'N/A',
-            price: currentPrice || 'N/A',
-            change: change !== 'N/A' ? change.toFixed(2) : 'N/A',
-            marketCap: profileResponse.data.marketCapitalization || 'N/A',
-            volumeToday: quoteResponse.data.v || 'N/A',
-            avgVolume: profileResponse.data.avgVolume || 'N/A',
-            peRatio: profileResponse.data.peNormalizedAnnual || 'N/A',
-          };
-        });
-
-        const stockData = await Promise.all(stockDataPromises);
-        setSp500Data(stockData);
-        setLoading(false);
-
-        // Set chart data for S&P 500 performance
-        setChartData({
-          labels: ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM'],
-          datasets: [
-            {
-              label: 'S&P500 Performance',
-              data: stockData.map(stock => stock.price),
-              borderColor: '#61dafb',
-              fill: false,
-            },
-          ],
-        });
-      } catch (error) {
-        console.error('Error fetching S&P 500 data:', error);
-      }
-    };
-
-    fetchSP500Data();
+    async function getData() {
+      const data = await fetchSP500Data();
+      const sortedData = data.sort((a, b) => b.marketcapitalization - a.marketcapitalization); // Sort by marketcap descending
+      setSp500Data(sortedData);
+      setLoading(false);
+    }
+    getData();
   }, []);
 
-  // Sort data
-  const sortedSp500Data = React.useMemo(() => {
-    let sortableData = [...sp500Data];
-    if (sortConfig !== null) {
-      sortableData.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableData;
-  }, [sp500Data, sortConfig]);
-
-  const requestSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
+  const handleSort = (column) => {
+    const direction = sortColumn === column && sortDirection === 'asc' ? 'desc' : 'asc';
+    const sortedData = [...sp500Data].sort((a, b) => {
+      if (typeof a[column] === 'number') {
+        return direction === 'asc' ? a[column] - b[column] : b[column] - a[column];
+      } else {
+        return direction === 'asc' 
+          ? a[column].localeCompare(b[column]) 
+          : b[column].localeCompare(a[column]);
+      }
+    });
+    setSp500Data(sortedData);
+    setSortColumn(column);
+    setSortDirection(direction);
   };
 
-  if (loading) return <p>Loading data...</p>;
+  const formatMarketCap = (marketCap) => {
+    return `${(marketCap / 1e3).toFixed(1).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  };
+
+  const formatChange = (change_percent) => {
+    return `${(change_percent * 1).toFixed(3)}`;
+  };
+
+  const formatPrice = (price) => {
+    return `${parseFloat(price).toFixed(2)}`;
+  };
+
+  const handleRowClick = (ticker) => {
+    navigate(`/stock/${ticker}`);
+  };
 
   return (
-    <div className="sp500-container">
-      <h2>S&P500 Companies</h2>
-
-      <table className="sp500-table">
-        <thead>
-          <tr>
-            <th onClick={() => requestSort('ticker')}>Ticker</th>
-            <th onClick={() => requestSort('name')}>Name</th>
-            <th onClick={() => requestSort('industry')}>Industry</th>
-            <th onClick={() => requestSort('price')}>$Price</th>
-            <th onClick={() => requestSort('change')}>% Change Today</th>
-            <th onClick={() => requestSort('marketCap')}>Market Capitalization</th>
-            <th onClick={() => requestSort('avgVolume')}>Avg Daily Volume</th>
-            <th onClick={() => requestSort('peRatio')}>PE Ratio</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedSp500Data.map((stock, index) => (
-            <tr key={index}>
-              <td>{stock.ticker}</td>
-              <td>{stock.name}</td>
-              <td>{stock.industry}</td>
-              <td>${stock.price.toFixed(2)}</td>
-              <td className={stock.change >= 0 ? 'positive' : 'negative'}>
-                {stock.change >= 0 ? `+${stock.change}%` : `${stock.change}%`}
-              </td>
-              <td>{stock.marketCap !== 'N/A' ? (stock.marketCap / 1e3).toFixed(2) + 'B' : 'N/A'}</td>
-              <td>{stock.avgVolume.toLocaleString() + "mm"}</td>
-              <td>{stock.peRatio.toLocaleString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div className="sp500-chart-container">
-        <h2>S&P500 Performance</h2>
-        <Line data={chartData} options={{ responsive: true }} />
-      </div>
+    <div className="min-h-screen bg-gray-900 text-white p-8">
+      <h2 className="text-3xl font-bold text-center mb-8">S&P 500 Performance</h2>
+      
+      {loading ? (
+        <p className="text-center">Loading data...</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full bg-gray-800 rounded-lg shadow-lg">
+            <thead className="bg-gray-700">
+              <tr>
+                <th className="py-3 px-6"></th>
+                <th className="py-3 px-6 text-left cursor-pointer" onClick={() => handleSort('ticker')}>Ticker</th>
+                <th className="py-3 px-6 text-left cursor-pointer" onClick={() => handleSort('name')}>Name</th>
+                <th className="py-3 px-6 text-left cursor-pointer" onClick={() => handleSort('industry')}>Industry</th>
+                <th className="py-3 px-6 text-center cursor-pointer" onClick={() => handleSort('change_percent')}>Change (%)</th>
+                <th className="py-3 px-6 text-center cursor-pointer" onClick={() => handleSort('price')}>Price ($)</th>
+                <th className="py-3 px-6 text-center cursor-pointer" onClick={() => handleSort('marketcapitalization')}>Market Cap (B)</th>
+                <th className="py-3 px-6 text-center cursor-pointer" onClick={() => handleSort('open')}>Open Price ($)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sp500Data.map((stock) => (
+                <tr key={stock.ticker} onClick={() => handleRowClick(stock.ticker)} className="hover:bg-gray-700 cursor-pointer">
+                  <td className="py-3 px-6 text-left ">
+                    <img src={stock.logo} alt={`${stock.ticker} logo`} className="w-8 h-8 object-contain" />
+                  </td>
+                  <td className="py-3 px-6 text-left ">{stock.ticker}</td>
+                  <td className="py-3 px-6 text-left ">{stock.name}</td>
+                  <td className="py-3 px-6 text-left ">{stock.industry}</td>
+                  <td className={`py-3 px-6 text-center ${formatChange(stock.change_percent) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {stock.change_percent >= 0 ? `+${formatChange(stock.change_percent)}%` : `${formatChange(stock.change_percent)}%`}
+                  </td>
+                  <td className="py-3 px-6 text-center ">{formatPrice(stock.price)}</td>
+                  <td className="py-3 px-6 text-center ">{formatMarketCap(stock.marketcapitalization)}</td>
+                  <td className="py-3 px-6 text-center ">{formatPrice(stock.open)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

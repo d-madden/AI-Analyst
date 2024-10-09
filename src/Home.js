@@ -1,71 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
-import { fetchStockData } from './apiService';
-import './Home.css';
+import { useNavigate } from 'react-router-dom';
+import { fetchSP500Data } from './apiService';
 
 function Home() {
-  const [stockData, setStockData] = useState([]);
+  const [homeData, setHomeData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate(); // Initialize navigation
+  const [sortColumn, setSortColumn] = useState('change_percent');
+  const [sortDirection, setSortDirection] = useState('desc');
+
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const getStockData = async () => {
-      const symbols = ['AAPL', 'MSFT', 'NVDA', 'META', 'AMZN'];
-      const data = await fetchStockData(symbols);
-      setStockData(data);
+    async function getData() {
+      const data = await fetchSP500Data();
+      data.sort((a, b) => b.change_percent - a.change_percent);
+      setHomeData(data.slice(0, 5));
       setLoading(false);
-    };
-
-    getStockData();
+    }
+    getData();
   }, []);
 
-  // Navigate to the stock detail page when a row is clicked
-  const handleRowClick = (symbol) => {
-    navigate(`/stock/${symbol}`);
+  const handleSort = (column) => {
+    const direction = sortColumn === column && sortDirection === 'asc' ? 'desc' : 'asc';
+    const sortedData = [...homeData].sort((a, b) => {
+      if (column === 'change_percent' || column === 'price' || column === 'change') {
+        return direction === 'asc' ? a[column] - b[column] : b[column] - a[column];
+      }
+      return direction === 'asc' ? a[column].localeCompare(b[column]) : b[column].localeCompare(a[column]);
+    });
+    setSortColumn(column);
+    setSortDirection(direction);
+    setHomeData(sortedData);
+  };
+
+  const handleRowClick = (ticker) => {
+    navigate(`/stock/${ticker}`);
   };
 
   return (
-    <div>
-      <div className="main-content">
-        <section className="financial-data">
-          <h2>Top 5 S&P 500 Stocks</h2>
+    <div className="px-8 py-12 space-y-8">
+      <div className="grid grid-cols-3 gap-8">
+        {/* Financial Data Section */}
+        <section className="col-span-2 bg-gray-800 p-6 rounded-lg shadow">
+          <h2 className="text-center text-xl font-bold">Top 5 S&P 500 Stocks</h2>
           {loading ? (
             <p>Loading data...</p>
           ) : (
-            <div className="stock-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Ticker</th>
-                    <th>Name</th>
-                    <th>% Change</th>
-                    <th>Price</th>
-                    <th>Volume</th>
-                    <th>Industry</th>
+            <table className="w-full text-left mt-4">
+              <thead>
+                <tr className="bg-gray-700">
+                  <th className="py-2 px-4 cursor-pointer" onClick={() => handleSort('ticker')}>Ticker</th>
+                  <th className="py-2 px-4 cursor-pointer" onClick={() => handleSort('name')}>Name</th>
+                  <th className="py-2 px-4 cursor-pointer" onClick={() => handleSort('change_percent')}>% Change</th>
+                  <th className="py-2 px-4 cursor-pointer" onClick={() => handleSort('price')}>Price</th>
+                  <th className="py-2 px-4 cursor-pointer" onClick={() => handleSort('open')}>Open</th>
+                </tr>
+              </thead>
+              <tbody>
+                {homeData.map((stock, index) => (
+                  <tr key={index} className="hover:bg-gray-600 cursor-pointer" onClick={() => handleRowClick(stock.ticker)}>
+                    <td className="py-2 px-4">{stock.ticker}</td>
+                    <td className="py-2 px-4">{stock.name}</td>
+                    <td className={`py-2 px-4 ${stock.change_percent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {stock.change_percent >= 0 ? `+${stock.change_percent}%` : `${stock.change_percent}%`}
+                    </td>
+                    <td className="py-2 px-4">${stock.price.toFixed(2)}</td>
+                    <td className="py-2 px-4">${stock.open.toFixed(2)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {stockData.map((stock, index) => (
-                    <tr key={index} onClick={() => handleRowClick(stock.ticker)}>
-                      <td>{stock.ticker}</td>
-                      <td>{stock.name}</td>
-                      <td className={stock.change >= 0 ? 'positive' : 'negative'}>
-                        {stock.change >= 0 ? `+${stock.change.toFixed(2)}%` : `${stock.change.toFixed(2)}%`}
-                      </td>
-                      <td>{stock.price.toFixed(2)}</td>
-                      <td>{stock.volume}</td>
-                      <td>{stock.industry}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           )}
         </section>
 
-        <section className="recommendations">
-          <h2>Personalized Recommendations</h2>
-          <button className="survey-button">GET RECOMMENDATIONS</button>
+        {/* Recommendations Section */}
+        <section className="bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center justify-center">
+          <h2 className="text-xl font-bold">Personalized Recommendations</h2>
+          <button className="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full uppercase">
+            Get Recommendations
+          </button>
         </section>
       </div>
     </div>

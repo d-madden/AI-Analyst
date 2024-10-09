@@ -20,17 +20,11 @@ body {
     border-radius: 10px;
     color: white;
     max-height: 400px; /* Fixed height for the section */
-    overflow-y: auto; /* Scrollable section */
   }
   
   .financial-data h2 {
     color: white;
     text-align: center;
-  }
-  
-  .stock-table {
-    max-height: 300px;
-    overflow-y: scroll; /* Enable scrolling for the table */
   }
   
   table {
